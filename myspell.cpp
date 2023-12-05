@@ -3,7 +3,9 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <limits>
 #include "hashtable.h"
+
 
 using namespace std;
 using namespace cop4530;
@@ -35,10 +37,11 @@ string convertWord(string word){
 
 void outputSentence(string& line, string& word){
 
-    string copy = word;
+    string copy = word;    
+    string element;
+    string newLine = "";
     istringstream iss(line);
     vector<string> words;
-    string element;
 
     while (iss >> element){
         words.push_back(element);
@@ -54,11 +57,10 @@ void outputSentence(string& line, string& word){
         *itr = copy;
     }
 
-    line = "";
     for (const auto & element : words){
-        line += element + " ";
+        newLine += element + " ";
     }
-    cout << line;
+    cout << newLine;
     cout << endl; 
 }
 
@@ -82,7 +84,7 @@ void findCandidateWords(HashTable<string> &ht, vector<string>& cw, string & word
                 cw.push_back(word);
             }
 
-            word[i] = previousChar; //reset to character
+            word[i] = previousChar; //reset to original character before moving to the next
         }
     }
 
@@ -95,41 +97,93 @@ void displayCW(vector<string>& cw){
         cout << i << "): " << cw[i] << endl;
     }
     cout << "n (no change):" << endl; 
-
-}
-
-void changeWord(const int& c, vector<string>& cw){
-
-}
-
-void chooseCW(vector<string>& cw){
-    int choice;
     cout << "====================================" << endl;
-    cout << "Your choice: ";
-    cin >> choice;
-
-    if (choice >= cw.size()){
-        cout << "invalid choice" << endl;
-        chooseCW(cw);
-    }
-    else{
-        changeWord(choice,cw);
-    }
 }
 
+void changeWord(HashTable<string> &ht, const int& c, string& line, vector<string>& cw, const char* outputFilename) {
+    string replacementWord;
+    string originalWord;
+    string checkWord;
+    string element;
+    string newLine;
+    vector<string> words;
+    istringstream iss(line);
+    ofstream of(outputFilename, fstream::app);
+
+    replacementWord = cw[c];
+
+    while (iss >> element) {
+        checkWord = convertWord(element);       //need to convert to lowercase to check if in ht
+        if (!ht.contains(checkWord)) {
+            originalWord = checkWord;
+            words.push_back(originalWord);      //pushback lowercase version and skip the current iteration
+            continue;
+        }
+        words.push_back(element);       //pushback other elements with normal punctuation
+    }
+
+    auto itr = std::find(words.begin(), words.end(), originalWord);
+    if (itr != words.end()) {
+        *itr = replacementWord;
+    }
+
+    for (const auto & element : words){
+        newLine += element + " ";
+    }
+    of << newLine;
+    of.close();
+
+}
+
+void changeWord(string& line, const char* outputFilename){
+    ofstream of(outputFilename, fstream::app);
+
+    if (!of.is_open()) {
+        cerr << "Error opening the output file." << endl;
+        return;  // Return an error code
+    }
+    of << line;
+    of.close();
+
+}
+
+void chooseCW(HashTable<string> &ht, string& line, vector<string>& cw, const char* outputFileName){
+    char choice = ' ';
+    int integerChoice = 0;
+
+    do {
+        cout << "Your choice: ";
+        cin >> choice;
+        cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');  // Clear input buffer
+        integerChoice = choice - '0';
+
+        if (choice != 'n' && integerChoice > cw.size() - 1) {
+            cout << "Invalid choice" << endl;
+            displayCW(cw);
+        }
+    } while (choice != 'n' && integerChoice > cw.size() - 1);
+    
+    if (choice == 'n'){
+        changeWord(line,outputFileName);        //output file with no changes
+    }
+    else {
+        changeWord(ht,integerChoice,line,cw,outputFileName);  //output file with line changed with selected word
+    }
+
+}
 
 int main(int argc, char* argv[]){
-    if (argc != 4){
-        cout << "Error please provide dictionary file, the file to be checked, and the output file" << endl;
-        return 1;
-    }
     const char* dictionary = argv[1];
     const char* checkFile = argv[2];
     const char* outputFile = argv[3];
     vector<string> candidateWords;
     string lowerCaseWord;
-    char choice;
     
+    if (argc == 1){ //if no input file provided show the menu 
+        menu();
+        return 0;
+    }
+
     HashTable<string> ht;
     ht.load(dictionary);
     
@@ -149,15 +203,11 @@ int main(int argc, char* argv[]){
                 outputSentence(line, word);
                 findCandidateWords(ht,candidateWords,lowerCaseWord);
                 displayCW(candidateWords);
-                chooseCW(candidateWords);
+                chooseCW(ht, line,candidateWords,outputFile);
 
             }
         }
     }
-
-    // do{
-    //     menu();
-    // }while(choice != 'x');
-      
+    
 	return 0;
 }
