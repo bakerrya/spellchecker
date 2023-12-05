@@ -158,7 +158,7 @@ bool HashTable<T>::load(const char * filename){
     fstream fs(filename);
 
     if (!fs.is_open()){
-        cout << "error";
+        cerr << "Cannot open file " << filename;
         return false;
     }
 
@@ -173,13 +173,43 @@ bool HashTable<T>::load(const char * filename){
 }
 
 template <typename T>
-void HashTable<T>::dump(){
-    for (auto & list : lists){
-        for (auto & x : list){
+bool HashTable<T>::write_to_file(const char *filename){
+    ofstream of(filename);
+
+    if (!of.is_open()) {
+        cerr << "Error opening file: " << filename;
+        return false;
+    }
+
+    for (const auto& bucket : lists) {
+        for (const auto& entry : bucket) {
+            of << entry << endl;
+        }
+    }
+
+    of.close();
+    return true;
+}
+
+template <typename T>
+void HashTable<T>::dump() {
+    for (size_t i = 0; i < lists.size(); ++i) {
+        cout << "v[" << i << "]: ";
+        for (const auto &x : lists[i]) {
             cout << x << "\t";
         }
         cout << endl;
     }
+}
+template <typename T>
+size_t HashTable<T>::size() const {
+    size_t size = 0;
+
+    for (const auto& bucket : lists) {
+        size += bucket.size();
+    }
+
+    return size;
 }
 
 #endif

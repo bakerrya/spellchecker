@@ -140,7 +140,7 @@ void changeWord(string& line, const char* outputFilename){
 
     if (!of.is_open()) {
         cerr << "Error opening the output file." << endl;
-        return;  // Return an error code
+        return;
     }
     of << line;
     of.close();
@@ -178,36 +178,104 @@ int main(int argc, char* argv[]){
     const char* outputFile = argv[3];
     vector<string> candidateWords;
     string lowerCaseWord;
+    string choice;
+    string capacity;
     
-    if (argc == 1){ //if no input file provided show the menu 
-        menu();
-        return 0;
+    if (argc == 1){ //if no command line parameters show the menu
+        cout << "Enter preferred hash table capacity: ";
+        getline(cin,capacity);
+        int htCapacity = stoi(capacity);
+        HashTable<string> htMenu(htCapacity);
+        do{
+            menu();
+            getline(cin, choice);
+            char * dictionaryFilename;
+            char * outputFilename;
+            string userWord;
+            size_t size;
+
+            if (choice == "l") {
+                cout << "Enter dictionary filename to load from: ";
+                cin >> dictionaryFilename;
+                cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');  // Clear input buffer
+                htMenu.load(dictionaryFilename);
+                cout << endl << endl;
+            } else if (choice == "a") {
+                cout << "Enter word: ";
+                getline(cin,userWord);
+                if (htMenu.contains(userWord)){
+                    cout << endl << "*****: Word already exists. Could not add." << endl << endl;
+                }
+                else {
+                    htMenu.insert(userWord);
+                    cout << endl;
+                    cout << "Word " << userWord << " added." << endl;
+                }
+            } else if (choice == "r") {
+                cout << "Enter word: ";
+                getline(cin,userWord);
+                htMenu.remove(userWord);
+                cout << endl << "Word " << userWord << " deleted.";
+                cout << endl;
+            } else if (choice == "c") {
+                htMenu.clear();
+            } else if (choice == "f") {
+                cout << "Enter word: ";
+                getline(cin,userWord);
+                if (!htMenu.contains(userWord)) {
+                    cout << "Word " << userWord << " not found." << endl << endl;
+                } else {
+                    cout << "Word " << userWord << " found." << endl << endl;
+                }
+            } else if (choice == "d") {
+                htMenu.dump();
+            } else if (choice == "s") {
+                size = htMenu.size();
+                cout << "Size of hashtable: " << size;
+                cout << endl;
+            } else if (choice == "w") {
+                cout << "Enter dictionary file name to write to: ";
+                cin >> outputFilename;
+                cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');  // Clear input buffer
+                htMenu.write_to_file(outputFilename);
+                cout << endl << endl;
+            }else if(choice == "x"){
+                return 0;
+            } else {
+                cout << "*****Error: Invalid entry.  Try again.";
+                cout << endl;
+            }
+        }while(choice != "x");
     }
+    else if (argc == 4){
+        HashTable<string> ht;
+        ht.load(dictionary);
+        
+        ifstream fs(checkFile);
 
-    HashTable<string> ht;
-    ht.load(dictionary);
-    
-    ifstream fs(checkFile);
+        if (!fs){
+            cout << "error";
+        }
+        string line;
 
-    if (!fs){
-        cout << "error";
-    }
-    string line;
-
-    while (getline(fs, line)){
-        istringstream iss(line);
-        string word;
-        while (iss >> word){
-            lowerCaseWord = convertWord(word);
-            if(!ht.contains(lowerCaseWord)){
-                outputSentence(line, word);
-                findCandidateWords(ht,candidateWords,lowerCaseWord);
-                displayCW(candidateWords);
-                chooseCW(ht, line,candidateWords,outputFile);
-
+        while (getline(fs, line)){
+            istringstream iss(line);
+            string word;
+            while (iss >> word){
+                lowerCaseWord = convertWord(word);
+                if(!ht.contains(lowerCaseWord)){
+                    outputSentence(line, word);
+                    findCandidateWords(ht,candidateWords,lowerCaseWord);
+                    displayCW(candidateWords);
+                    chooseCW(ht, line,candidateWords,outputFile);
+                }
             }
         }
+        
+        return 0;
     }
-    
-	return 0;
+    else{       //provide instructions for user to use program correctly
+        cout << "./proj5.x dictionary check_file output_file";
+        return 0;
+    }
 }
