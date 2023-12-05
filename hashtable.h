@@ -28,7 +28,7 @@ public:
     bool load(const char *filename);
     void dump();
     bool write_to_file(const char *filename);
-    size_t size() const;
+    int size() const;
 
 private:
     void makeEmpty();

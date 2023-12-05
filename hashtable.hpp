@@ -58,8 +58,20 @@ unsigned long HashTable<T>::prime_below (long n)
                          
 template <typename T>
 HashTable<T>::HashTable(size_t size){
-    currentSize = prime_below(size);
-    lists.resize(currentSize);
+    if (size >= 2){
+        int htSize = prime_below(size);
+        cout << htSize << endl;
+        currentSize = 0;
+        lists.resize(htSize);
+    }
+    else {
+        cout << "** input too small" << endl << "set to default capacity"<< endl;
+        int htSize = 11;
+        cout << htSize << endl;
+        currentSize = 0;
+        lists.resize(htSize);
+    }
+
 }
 
 template <typename T>
@@ -202,14 +214,8 @@ void HashTable<T>::dump() {
     }
 }
 template <typename T>
-size_t HashTable<T>::size() const {
-    size_t size = 0;
-
-    for (const auto& bucket : lists) {
-        size += bucket.size();
-    }
-
-    return size;
+int HashTable<T>::size() const {
+    return currentSize;
 }
 
 #endif

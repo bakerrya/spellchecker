@@ -100,12 +100,29 @@ void displayCW(vector<string>& cw){
     cout << "====================================" << endl;
 }
 
+string checkConventions(string& word1, string& word2){
+
+    if (word1.length() > word2.length()) {
+        word2 += word1.substr(word2.length());
+    }
+
+    for (int i = 0; i < word1.length(); ++i) {
+        if (isalpha(word1[i]) && isalpha(word2[i])) {
+            if (isupper(word1[i])) {
+                word2[i] = toupper(word2[i]);
+            }
+        }
+    }
+
+    return word2;
+}
+
 void changeWord(HashTable<string> &ht, const int& c, string& line, vector<string>& cw, const char* outputFilename) {
     string replacementWord;
     string originalWord;
     string checkWord;
     string element;
-    string newLine;
+    string newLine ="";
     vector<string> words;
     istringstream iss(line);
     ofstream of(outputFilename, fstream::app);
@@ -122,27 +139,35 @@ void changeWord(HashTable<string> &ht, const int& c, string& line, vector<string
         words.push_back(element);       //pushback other elements with normal punctuation
     }
 
+    checkConventions(originalWord,replacementWord);
+
     auto itr = std::find(words.begin(), words.end(), originalWord);
     if (itr != words.end()) {
         *itr = replacementWord;
     }
 
+    //check to see if line began with a tab
+    if (line[0] == ' ') {
+        newLine = "    ";       //add a 4 space tab
+    }
+
     for (const auto & element : words){
         newLine += element + " ";
     }
-    of << newLine;
+
+    of << newLine << "\n";
     of.close();
 
 }
 
-void changeWord(string& line, const char* outputFilename){
+void outputNoChange(string& line, const char* outputFilename){
     ofstream of(outputFilename, fstream::app);
 
     if (!of.is_open()) {
         cerr << "Error opening the output file." << endl;
         return;
     }
-    of << line;
+    of << line << "\n";
     of.close();
 
 }
@@ -161,14 +186,14 @@ void chooseCW(HashTable<string> &ht, string& line, vector<string>& cw, const cha
             cout << "Invalid choice" << endl;
             displayCW(cw);
         }
+        else if (choice == 'n'){
+            outputNoChange(line,outputFileName);        //output file with no changes
+        }
+        else {
+            changeWord(ht,integerChoice,line,cw,outputFileName);  //output file with line changed with selected word
+        }
     } while (choice != 'n' && integerChoice > cw.size() - 1);
     
-    if (choice == 'n'){
-        changeWord(line,outputFileName);        //output file with no changes
-    }
-    else {
-        changeWord(ht,integerChoice,line,cw,outputFileName);  //output file with line changed with selected word
-    }
 
 }
 
@@ -189,15 +214,13 @@ int main(int argc, char* argv[]){
         do{
             menu();
             getline(cin, choice);
-            char * dictionaryFilename;
-            char * outputFilename;
             string userWord;
-            size_t size;
+            int size;
 
             if (choice == "l") {
                 cout << "Enter dictionary filename to load from: ";
-                cin >> dictionaryFilename;
-                cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');  // Clear input buffer
+                getline(cin,userWord);
+                const char* dictionaryFilename = userWord.c_str();
                 htMenu.load(dictionaryFilename);
                 cout << endl << endl;
             } else if (choice == "a") {
@@ -214,9 +237,13 @@ int main(int argc, char* argv[]){
             } else if (choice == "r") {
                 cout << "Enter word: ";
                 getline(cin,userWord);
-                htMenu.remove(userWord);
-                cout << endl << "Word " << userWord << " deleted.";
-                cout << endl;
+                if(!htMenu.contains(userWord)){
+                    cout << "*****: Word not found.  Could not delete";
+                }
+                else {
+                    htMenu.remove(userWord);
+                    cout << "Word " << userWord << " deleted." << endl;
+                }
             } else if (choice == "c") {
                 htMenu.clear();
             } else if (choice == "f") {
@@ -235,8 +262,8 @@ int main(int argc, char* argv[]){
                 cout << endl;
             } else if (choice == "w") {
                 cout << "Enter dictionary file name to write to: ";
-                cin >> outputFilename;
-                cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');  // Clear input buffer
+                getline(cin,userWord);
+                const char * outputFilename = userWord.c_str();
                 htMenu.write_to_file(outputFilename);
                 cout << endl << endl;
             }else if(choice == "x"){
@@ -258,6 +285,8 @@ int main(int argc, char* argv[]){
         }
         string line;
 
+        bool changeMade = false;
+
         while (getline(fs, line)){
             istringstream iss(line);
             string word;
@@ -268,8 +297,14 @@ int main(int argc, char* argv[]){
                     findCandidateWords(ht,candidateWords,lowerCaseWord);
                     displayCW(candidateWords);
                     chooseCW(ht, line,candidateWords,outputFile);
+                    changeMade = true;
+                    break;
                 }
             }
+            if (!changeMade){
+                outputNoChange(line, outputFile);
+            }
+            changeMade = false;     //reset flag
         }
         
         return 0;
